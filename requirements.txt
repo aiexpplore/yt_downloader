@@ -14,3 +14,4 @@ simple-websocket==1.0.0
 Werkzeug==3.0.3
 wsproto==1.2.0
 gunicorn==20.1.0
+yt_dlp==2024.02.24
