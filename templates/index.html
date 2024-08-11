@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TubeJet</title>
+    <link rel="icon" href="static/logo.jpg" type="image/x-icon">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #190343;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            color: #6780c2;
+        }
+
+        p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #ccc;
+        }
+
+        #download-form {
+            background-color: #1f1f1f;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+        }
+   
+
+        label {
+            font-size: 1em;
+            color: #fff;
+        }
+
+        input[type="text"], select {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #333;
+            color: #fff;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #6780c2;
+            color: #fff;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #e04343;
+        }
+
+        #progress-container {
+            width: 100%;
+            background-color: #333;
+            margin-top: 20px;
+            border-radius: 5px;
+            display: none;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 30px;
+            background-color: #4caf50;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 1em;
+            color: #ccc;
+            text-align: center;
+        }
+
+        footer {
+            background-color: #6780c2; /* Red background */
+            color: #ffffff; /* White text */
+            padding: 10px;
+            text-align: center;
+            border-top: 1px solid #e7e7e7;
+            width: 100%;
+            margin-top: 100px;
+        }
+        footer p {
+            margin: 0;
+        }
+        footer a {
+            color: #ffffff; /* White text */
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+        .info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        img{
+            height:100px;
+            margin-top: 100px;
+            width: 100px;
+        }
+        .logo-container{
+            margin-top: 100px;
+        }
+
+        @media (max-width:600px) {
+            #download-form{
+                width: 80%;
+            }
+            img{
+                margin-top: 120px;
+                height: 80px;
+                width: 80px;
+            }
+            h1{
+                font-size: 30px;
+            }
+            p{
+                font-size: 17px;
+                margin-bottom: 05px;
+                width: 80%;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="logo-container">
+        <img src="{{ url_for('static', filename='logo.jpg') }}" alt="TubeJet Logo">
+    </div>
+
+
+    <h1>TubeJet</h1>
+    <p>Fast and sleek, TubeJet is your ultimate destination for downloading YouTube videos and audio in just one clicks.</p>
+
+<p>Do Adds free downloads</p>
+    <form id="download-form">
+        <label for="url">YouTube URL:</label><br>
+        <input type="text" id="url" name="url" required><br><br>
+        <label for="type">Type:</label><br>
+        <select id="type" name="type">
+            <option value="video">Video</option>
+            <option value="audio">Audio</option>
+        </select><br><br>
+        <button type="submit">Download</button>
+    </form>
+
+    <div id="progress-container">
+        <div id="progress-bar">0%</div>
+    </div>
+    <p id="status"></p>
+
+    <footer>
+        <div class="info">
+            <p>TubeJet</p>
+            <p>|</p>
+            <p><a href="mailto:aiexplorerd@gmail.com">aiexplorerd@gmail.com</a></p>
+        </div>
+        <p>Developed by Ashutosh Pawar</p>
+    </footer>
+
+    <script>
+        const form = document.getElementById('download-form');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const statusText = document.getElementById('status');
+
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            progressContainer.style.display = 'none';
+            statusText.textContent = 'Starting download...';
+            
+            fetch('/download', {
+                method: 'POST',
+                body: new FormData(form)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'started') {
+                    checkProgress();
+                }
+            });
+        };
+
+        function checkProgress() {
+            fetch('/progress')
+            .then(response => response.json())
+            .then(data => {
+                progressBar.style.width = data.percent;
+                progressBar.textContent = data.percent;
+                statusText.textContent = `Downloaded: ${data.downloaded} MB / Total: ${data.total} MB (${data.percent.replace(/\033\[[0-9;]*m/g, '')} complete)`;
+
+                if (data.status === 'completed') {
+                    statusText.textContent += ' - Download completed!';
+                    getFile();
+                } else {
+                    setTimeout(checkProgress, 1000);
+                }
+            });
+        }
+
+        function getFile() {
+            fetch('/get_file')
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'download';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            });
+        }
+    </script>
+</body>
+</html>
