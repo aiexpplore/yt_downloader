@@ -21,6 +21,7 @@ def progress_hook(d):
 
 def download_video(url, download_type):
     ydl_opts = {
+        'cookies': 'cookies.txt',
         'format': 'bestaudio/best' if download_type == 'audio' else 'best[height<=480]',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'progress_hooks': [progress_hook],
