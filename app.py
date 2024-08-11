@@ -20,6 +20,8 @@ def progress_hook(d):
         download_progress['total'] = f'{total / (1024 * 1024):.2f}' if total else 'Unknown'
 
 def download_video(url, download_type):
+    time.sleep(10)  # Delay between requests to avoid rate limiting
+
     ydl_opts = {
         'cookies': 'cookies.txt',
         'format': 'bestaudio/best' if download_type == 'audio' else 'best[height<=480]',
@@ -29,18 +31,29 @@ def download_video(url, download_type):
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '128',
-        }] if download_type == 'audio' else []
+        }] if download_type == 'audio' else [],
+        'proxy': 'http://your-proxy-server:port',  # Add this if using a proxy
     }
 
     with app.app_context():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
-            if download_type == 'audio':
-                filename = os.path.splitext(filename)[0] + '.mp3'
-    
+            try:
+                info = ydl.extract_info(url, download=True)
+                filename = ydl.prepare_filename(info)
+                if download_type == 'audio':
+                    filename = os.path.splitext(filename)[0] + '.mp3'
+            except yt_dlp.utils.DownloadError as e:
+                download_progress['status'] = 'failed'
+                download_progress['error'] = f'Error: {str(e)}'
+                return None
+            except Exception as e:
+                download_progress['status'] = 'failed'
+                download_progress['error'] = f'Unexpected error: {str(e)}'
+                return None
+
     download_progress['status'] = 'completed'
     return filename
+
 
 @app.route('/')
 def index():
