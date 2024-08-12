@@ -29,7 +29,7 @@ def download_video(url, download_type):
     time.sleep(10)  # Delay between requests to avoid rate limiting
 
     ydl_opts = {
-        'cookies': 'cookies.txt',
+        'cookies': 'cookies.txt',  # Make sure your authenticated cookies are in this file
         'format': 'bestaudio/best' if download_type == 'audio' else 'best[height<=480]',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'progress_hooks': [progress_hook],
@@ -38,9 +38,8 @@ def download_video(url, download_type):
             'preferredcodec': 'mp3',
             'preferredquality': '128',
         }] if download_type == 'audio' else [],
-        # 'proxy': 'http://your-proxy-server:port',  # Uncomment if using a proxy
-        'logger': logging.getLogger(),  # Use the logging configuration
-        'verbose': True  # Enable verbose output for more detailed logs
+        'logger': logging.getLogger(),
+        'verbose': True
     }
 
     with app.app_context():
@@ -66,7 +65,6 @@ def download_video(url, download_type):
             download_progress['status'] = 'failed'
             download_progress['error'] = f'Unexpected error: {str(e)}'
             return None
-
 @app.route('/')
 def index():
     return render_template('index.html')
