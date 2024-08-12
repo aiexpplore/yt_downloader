@@ -1,11 +1,15 @@
 from flask import Flask, render_template, request, send_file, jsonify
 import yt_dlp
+import logging
 from io import BytesIO
 import os
 import threading
 import time
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 
 # Global variable to store download progress
 download_progress = {'status': 'idle', 'percent': '0%', 'downloaded': '0', 'total': 'Unknown'}
@@ -17,8 +21,9 @@ def progress_hook(d):
         downloaded = d.get('downloaded_bytes', 0)
         total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
 
-        download_progress['downloaded'] = f'{downloaded / (1024 * 1024):.2f}'
-        download_progress['total'] = f'{total / (1024 * 1024):.2f}' if total else 'Unknown'
+        download_progress['downloaded'] = f'{downloaded / (1024 * 1024):.2f} MB'
+        download_progress['total'] = f'{total / (1024 * 1024):.2f} MB' if total else 'Unknown'
+        logging.debug(f"Downloading {d['filename']}: {download_progress['percent']} complete, {download_progress['downloaded']} MB of {download_progress['total']} MB")
 
 def download_video(url, download_type):
     time.sleep(10)  # Delay between requests to avoid rate limiting
@@ -33,28 +38,34 @@ def download_video(url, download_type):
             'preferredcodec': 'mp3',
             'preferredquality': '128',
         }] if download_type == 'audio' else [],
-        'proxy': 'http://your-proxy-server:port',  # Add this if using a proxy
+        # 'proxy': 'http://your-proxy-server:port',  # Uncomment if using a proxy
+        'logger': logging.getLogger(),  # Use the logging configuration
+        'verbose': True  # Enable verbose output for more detailed logs
     }
 
     with app.app_context():
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            try:
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
                 filename = ydl.prepare_filename(info)
+                
                 if download_type == 'audio':
                     filename = os.path.splitext(filename)[0] + '.mp3'
-            except yt_dlp.utils.DownloadError as e:
-                download_progress['status'] = 'failed'
-                download_progress['error'] = f'Error: {str(e)}'
-                return None
-            except Exception as e:
-                download_progress['status'] = 'failed'
-                download_progress['error'] = f'Unexpected error: {str(e)}'
-                return None
-
-    download_progress['status'] = 'completed'
-    return filename
-
+                
+                download_progress['status'] = 'completed'
+                return filename
+            
+        except yt_dlp.utils.DownloadError as e:
+            logging.error(f"Download failed: {str(e)}")
+            download_progress['status'] = 'failed'
+            download_progress['error'] = f'Error: {str(e)}'
+            return None
+            
+        except Exception as e:
+            logging.error(f"Unexpected error: {str(e)}")
+            download_progress['status'] = 'failed'
+            download_progress['error'] = f'Unexpected error: {str(e)}'
+            return None
 
 @app.route('/')
 def index():
